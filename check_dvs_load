@@ -1,0 +1,60 @@
+#!/usr/bin/python
+# Check DVS load
+
+import sys
+import subprocess as SP
+from optparse import OptionParser
+
+def get_options():
+    """Get/parse command line arguments."""
+    parser = OptionParser()
+    parser.add_option("-c", "--critical", type="float", dest="load_crit")
+    parser.add_option("-w", "--warning", type="float", dest="load_warn")
+    parser.add_option("-H", "--host", type="string", dest="node")
+    (options, args) = parser.parse_args()
+    load_crit = options.load_crit
+    load_warn = options.load_warn
+    node = options.node
+    return (node, load_crit, load_warn)
+
+def get_uptime(node):
+    """Run command 'uptime' on 'node'"""
+    command = "ssh -l crayadm {0} 'uptime'".format(node)
+
+    node_uptime = SP.Popen(command, shell=True, stdout=SP.PIPE)
+    text = node_uptime.communicate()[0] # Stdout
+    text = text.strip()
+    return (text)
+
+def node_load(node):
+    """Return the field 'load 1' of command uptime."""
+    node_uptime = get_uptime(node)
+    load_index = node_uptime.find('load average:')
+    load = node_uptime[load_index:].split(':')[1]
+    load1 = float(load.split(',')[0])
+    return(load1)
+
+def load_status():
+    """Return 0, 1, 2 or 3 according to node load. These values are used by Nagios."""
+    node, load_crit, load_warn = get_options()
+    load_node = node_load(node)
+
+    if load_node > load_crit:
+        load_status = 2
+    elif load_node > load_warn:
+        load_status = 1
+    else:
+        load_status = 0
+
+    return (load_status, load_node)
+
+if __name__ == "__main__":
+    # Nagios status values.
+    nagios_status = ("OK", "WARNING", "CRITICAL", "UNKNOWN")
+
+    # Get node status.
+    load_status, load_node  =  load_status()
+    print "LOAD {0} - load {1}".format(nagios_status[load_status], load_node)
+    sys.exit(load_status)
+
+

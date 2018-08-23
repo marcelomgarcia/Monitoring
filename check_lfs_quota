@@ -1,0 +1,94 @@
+#!/usr/bin/python
+#
+# Check if Lustre quotas are working: it checks if there are [] in the...
+# output of 'lfs quota'
+# 
+# Marcelo Garcia (mgarcia@cray.com)
+#
+import sys, subprocess
+from optparse import OptionParser
+
+def read_quota_problem():
+    """Read a file with error message from Lustre. DEBUG ONLY"""
+    print "This is a DEBUG test."
+    fin = open("quota_problems.txt", "r")
+    text = fin.readlines()
+    fin.close()
+    #print "quota problem!"
+    #print text[2]
+    #print text[6]
+    return (text)
+
+def is_quota(lustre_fs):
+    """Return the True if Lustre file system has quota working properly."""
+    # Get quota information.
+    quota_info = get_lfs_quota(lustre_fs)
+    #quota_info = read_quota_problem()
+    quota_user = quota_info[2]
+    quota_group = ""
+    quota_OK = False
+
+    if '[' not in quota_user:
+        #print "Quota user OK"
+        quota_group = quota_info[5]
+    else:
+        #print "Quota user not OK"
+        quota_group = quota_info[6]
+
+    #if '[' not in quota_group:
+    #    print "Quota group OK"
+    #else:
+    #    print "Quota group not OK"
+
+    if '[' not in quota_user or '[' not in quota_group:
+        #print "quota OK."
+        quota_OK = True
+
+    #print "is_quota: quota_OK = {0}".format(quota_OK)
+    return(quota_OK)
+
+def get_lfs_quota(lustre_fs):
+    """Run command 'lfs quota <lustre_fs>"""
+    command = "lfs quota {0}".format(lustre_fs)
+    text = subprocess.Popen(command, shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True).communicate()[0]
+    #print text
+    text = text.strip().split("\n")
+    return(text)
+     
+def main(args = None):
+    """Main routine."""
+    # Nagios status values.
+    STATE_OK = 0
+    STATE_WARNING = 1
+    STATE_CRITICAL = 2
+    STATE_UNKNOWN = 3
+
+    quota_OK = False
+
+    parser = OptionParser()
+    parser.add_option("-m", "--mount", type="string", dest="lustre_fs",
+            help="mount point of lustre file system")
+    (options, args) = parser.parse_args()
+    lustre_fs = options.lustre_fs
+
+    script_name = sys.argv[0]
+    if not lustre_fs:
+        print "{0} -m <file system>".format(script_name)
+        sys.exit(STATE_UNKNOWN)
+
+    # Get quota information. Return 'True' if quota is OK.
+    quota_OK = is_quota(lustre_fs)
+    
+    if not quota_OK:
+        print "Quota CRITICAL"
+        sys.exit(STATE_CRITICAL)
+    else:
+        print "Quota OK"
+        sys.exit(STATE_OK)
+
+if __name__ == "__main__":
+    main()
+

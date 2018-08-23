@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Check if an OST became read-only.
+# Lustre 2.0 Operations manual: 26.3.2 "OSTs Become Read-Only"
+# The status in /proc/fs/lustre/health_check shows "not healthy"...
+# on the affected nodes. 
+# Marcelo Garcia (mgarcia@cray.com)
+
+# Nagios exit codes.
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+
+##
+# Helper functions.
+
+function is_lfs_healthy {
+# Test if Lustre if healthy.
+egrep -i 'not' /proc/fs/lustre/health_check > /dev/null
+if [ $? -eq 0 ]; then
+    # If found "not" means the content of "health_check" is "not healthy."
+    echo "Lustre CRITICAL - Not  healthy"
+    exit $STATE_CRITICAL
+else
+    echo "Lustre OK - Healthy"
+    exit $STATE_OK
+fi
+}
+
+function test_lfs_healthy {
+# Cat a file with the string "not" just to test the idea.
+echo "not healthy" > /tmp/my_lfs_test.txt
+egrep -i 'not' /tmp/my_lfs_test.txt > /dev/null
+if [ $? -eq 0 ]; then
+    echo "CRITICAL !!!!!!!!!!!!!!!!!!!!!!"
+else
+    echo "OK, OK, OK"
+fi
+echo "Have a nice day."
+}
+
+##
+# Helper functions.
+
+is_lfs_healthy
+
+# The End.
