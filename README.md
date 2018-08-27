@@ -14,11 +14,13 @@ The script reads the 1 minute load from the output of command `uptime`. Once the
 
 * `check_lfs_quota`: issue the command `lfs quota` on a file system passed as parameter. If there is a problem with the quota system, the quota information will be inside brackets "[]". If the script finds a opening bracket "[", then there is a problem, and return the status *critical* to Nagios. For example:  
 
+```
     eslogin003:~ # lfs quota /univ_1
     Disk quotas for user root (uid 0):
-         Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace
-            /univ_1 [10200224]       0       0       -   17724       0       0       -
+    Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace
+        /univ_1 [10200224]       0       0       -   17724       0       0       -
     Some errors happened when getting quota info. Some devices may be not working or deactivated. The data in "[]" is inaccurate.
     (...)
+```
 
 * `check_ost.py`: check the usage of the Lustre OSTs. If a user submit didn't use the option to strip his job, and he wrote a lot to the disk, he could fill just one of the OST, or at least, cause a imbalance in the OST usage.
