@@ -25,6 +25,8 @@ Collection of monitoring scripts. Most of them used as Nagios plugins.
 
 ## NetApp
 
+### Disabled cache
+
 The `sna_wrtcache.py` scripts check if the controller has suspended the read and write caches. This can happen if the other controller has a failure. The script accepts the controller as parameter, and even the file `storage-array-profile.txt` (with `-f` option) from the support bundle. The default option is to return the `critical` status to Icinga as soon as the script finds a lun in suspended mode, but there is the option `-l` to list all volumes that are suspended.
 
 The options to the script are:
@@ -97,3 +99,9 @@ define service {
 ```
 
 The complementary script is `wrtcache_up.sh`, that re-enable the cache. Although disabling the cache is the safest option, there is a performance penalty, and if this price becomes to high, the operator can re-enable the cache. The script takes the controller as the single parameter.
+
+### Clock synchronization
+
+Sometimes the clock of the controllers can get out of sync with the management workstation, and when someone logs into the controller with `SMclient`, there is a message that the clock is out of sync.
+
+To force the synchronization, run the script `netapp_sync_clock.sh`, from the management workstation.
