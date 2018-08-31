@@ -4,9 +4,7 @@ Collection of monitoring scripts. Most of them used as Nagios plugins.
 
 ## Load on the DVS
 
-On a Cray XC system, the load on the DVS server is important. First things first, the DVS is similar to a NFS server. It projects external file systems to the compute nodes using the Cray high-speed network.
-
-The script reads the 1 minute load from the output of command `uptime`. Once the script has the load on the DVS server (called *node* on the script), it compares agains the thresold for *critical* or *warning*.
+* `check_dvs_load`: check the load on a DVS server. The script reads the 1 minute load from the output of command `uptime`. Once the script has the load on the DVS server (called *node* on the script), it compares agains the thresold for *critical* or *warning*.
 
 ## Lustre
 
@@ -14,7 +12,7 @@ The script reads the 1 minute load from the output of command `uptime`. Once the
 
 * `check_lfs_quota`: issue the command `lfs quota` on a file system passed as parameter. If there is a problem with the quota system, the quota information will be inside brackets "[]". If the script finds a opening bracket "[", then there is a problem, and return the status *critical* to Nagios. For example:  
 
-```
+```bash
     eslogin003:~ # lfs quota /univ_1
     Disk quotas for user root (uid 0):
     Filesystem  kbytes   quota   limit   grace   files   quota   limit   grace
@@ -24,3 +22,49 @@ The script reads the 1 minute load from the output of command `uptime`. Once the
 ```
 
 * `check_ost.py`: check the usage of the Lustre OSTs. If a user submit didn't use the option to strip his job, and he wrote a lot to the disk, he could fill just one of the OST, or at least, cause a imbalance in the OST usage.
+
+## NetApp
+
+The `sna_wrtcache.py` scripts check if the controller has suspended the caches
+
+    /maint/nagios/sbin/sna_wrtcache.py
+
+The script queries the controller for the status of the volumes
+
+```Python
+command = "SMcli " + controller + " -c 'show allVolumes;'"
+pOut = subp.Popen(command, shell=True,
+         stdout=subp.PIPE, universal_newlines=True)
+text = pOut.communicate()[0]
+```
+
+The script then scans the variable ''text'' for the information about the write cache and write cache mirroring. If the script finds the word //suspended//, it return the status //critical// to Icinga
+
+```Python
+if 'suspended' in write_cache_mirroring_status or 'suspended' in write_cache_status:
+    # The write cache is suspended on the controller.
+    print vol_name + " has a write cache suspended"
+    sys.exit(STATE_CRITICAL)
+```
+
+The Icinga configuration is in
+
+```bash
+cat /etc/icinga/conf.d/sv_storage.cfg
+(...)
+# 'check-sna-wrtcache' command definition
+define command{
+    command_name check-sna-wrtcache
+    command_line    $USER1$/check_by_ssh -H localhost -t 300 -l root  <break>
+        -C "/maint/nagios/sbin/sna_wrtcache.py -p $ARG1$ -a $ARG2$"
+}
+(...)
+define service {
+   use                          critical-service-checks-5min
+   hostgroup_name               storage-w,storage-e
+   check_command                check-sna-wrtcache!$_HOSTC0ADDR$!$_HOSTC1ADDR$
+   service_description          Check SNA write cache enabled
+   service_groups               CTRL_HEALTH,all
+}
+[root@nagiosds conf.d]#
+```
