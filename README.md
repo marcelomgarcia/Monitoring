@@ -25,9 +25,36 @@ Collection of monitoring scripts. Most of them used as Nagios plugins.
 
 ## NetApp
 
-The `sna_wrtcache.py` scripts check if the controller has suspended the caches
+The `sna_wrtcache.py` scripts check if the controller has suspended the read and write caches. This can happen if the other controller has a failure. The script accepts the controller as parameter, and even the file `storage-array-profile.txt` (with `-f` option) from the support bundle. The default option is to return the `critical` status to Icinga as soon as the script finds a lun in suspended mode, but there is the option `-l` to list all volumes that are suspended.
 
-    /maint/nagios/sbin/sna_wrtcache.py
+The options to the script are:
+
+    [root@nagiosds dbsew_summary]# ./sna_wrtcache.py --help
+    Usage: sna_wrtcache.py [options]
+
+    Options:
+    -h, --help            show this help message and exit
+    -p CONTROLLER_A, --primary=CONTROLLER_A
+                            name of controller to query, like 'dase00-0'
+    -a CONTROLLER_B, --alternative=CONTROLLER_B
+                            name of seconday controller to query, like 'dase00-1'
+    -f FILE_ALLVOLUMES, --file=FILE_ALLVOLUMES
+                            file with the output of 'show AllVolumes'
+    -l, --list            List all volumes in 'suspended' mode
+    [root@nagiosds dbsew_summary]#
+
+For example, using the `storage-array-profile.txt` file
+
+    [root@nagiosds dbsew_summary]# ./sna_wrtcache.py -f storage-array-profile.txt
+    dasw05lun00 has a write cache suspended
+    [root@nagiosds dbsew_summary]#
+
+And listing all volumes that are suspended
+
+    [root@nagiosds dbsew_summary]# ./sna_wrtcache.py -l -f storage-array-profile.txt
+    dasw05lun00  Enabled (currently suspended) Enabled (currently suspended)
+    dasw05lun01  Enabled (currently suspended) Enabled (currently suspended)
+    (...)
 
 The script queries the controller for the status of the volumes
 
@@ -38,7 +65,7 @@ pOut = subp.Popen(command, shell=True,
 text = pOut.communicate()[0]
 ```
 
-The script then scans the variable ''text'' for the information about the write cache and write cache mirroring. If the script finds the word //suspended//, it return the status //critical// to Icinga
+The script then scans the variable `text` for the information about the write cache and write cache mirroring. If the script finds the word _suspended_, it return the status _critical_ to Icinga
 
 ```Python
 if 'suspended' in write_cache_mirroring_status or 'suspended' in write_cache_status:
@@ -68,3 +95,5 @@ define service {
 }
 [root@nagiosds conf.d]#
 ```
+
+The complementary script is `wrtcache_up.sh`, that re-enable the cache. Although disabling the cache is the safest option, there is a performance penalty, and if this price becomes to high, the operator can re-enable the cache. The script takes the controller as the single parameter.
