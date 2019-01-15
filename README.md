@@ -110,6 +110,27 @@ To force the synchronization, run the script `netapp_sync_clock.sh`, from the ma
 
 The script `check_gpfs_quota.py` checks for the `in_doubt` value of the output of the command to check quota, `mmrepquota`. The `in_doubt` value is the amount of quota that the server gave to the client, but don't know yet how much the client has already used. In case of a client failure, a new client will work with a new share from server, the share hold before the failure is still set aside in the “in doubt” value.
 
+The script takes the fileset to be checked as parameter, but if the parameter is the word _file_, then the following argument should be the name of the file. This was done to make the development easier, since the development could be done anywhere instead of a GPFS node, and issuing real commands
+
+```Python
+    if len(sys.argv) == 1:
+        print "Usage: {0} <filesystem>".format(sys.argv[0])
+        sys.exit(STATE_UNKNOWN)
+    else:
+        # Development only. Accept the key word 'file' to read the data
+        # from a file instead of running the mm command.
+        if sys.argv[1] == "file":
+            # read file name
+            file_fs_data = sys.argv[2]
+            (...)
+```
+
+The Icinga command looks like
+
+    command_line     $USER1$/check_by_ssh -H $HOSTADDRESS$ -t 120 -l root -C "/maint/nagios/sbin/check_gpfs_quota.py gpfs.bindata"
+
+
+
 The script checks if the amount of already used disk space plus the `in_doubt` are lower than the quota of the file system. The script also checks if the value of `in_doubt` is not too big. The threshold is defined in the `quota_check.conf` file, and it's expressed in _kilobytes_. The configuration file also has the values that should be used to control the usage of a file system. The usage is expressed as percentage quota of the file system.
 
 ``` Python
@@ -138,3 +159,14 @@ The content of the `quota_check.conf` file
 
     [root@nagiosds bin]#
 ```
+
+The script only run on the file system manager, anywhere else the script will simply exit. The test is a comparison of _hostname_ and the output of the command `mmlsmgr`:
+
+```Python
+# On the main routine
+(...)
+    if not is_fsmgr(quota_fileset):
+        print "I'm not the file system manager for {0}".format(quota_fileset)
+        sys.exit(STATE_OK)
+```
+
