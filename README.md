@@ -129,8 +129,6 @@ The Icinga command looks like
 
     command_line     $USER1$/check_by_ssh -H $HOSTADDRESS$ -t 120 -l root -C "/maint/nagios/sbin/check_gpfs_quota.py gpfs.bindata"
 
-
-
 The script checks if the amount of already used disk space plus the `in_doubt` are lower than the quota of the file system. The script also checks if the value of `in_doubt` is not too big. The threshold is defined in the `quota_check.conf` file, and it's expressed in _kilobytes_. The configuration file also has the values that should be used to control the usage of a file system. The usage is expressed as percentage quota of the file system.
 
 ``` Python
@@ -169,4 +167,3 @@ The script only run on the file system manager, anywhere else the script will si
         print "I'm not the file system manager for {0}".format(quota_fileset)
         sys.exit(STATE_OK)
 ```
-
