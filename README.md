@@ -105,3 +105,7 @@ The complementary script is `wrtcache_up.sh`, that re-enable the cache. Although
 Sometimes the clock of the controllers can get out of sync with the management workstation, and when someone logs into the controller with `SMclient`, there is a message that the clock is out of sync.
 
 To force the synchronization, run the script `netapp_sync_clock.sh`, from the management workstation.
+
+## GPFS
+
+The script `check_gpfs_quota.py` checks for the `in_doubt` value of the output of the command to check quota, `mmrepquota`. The `in_doubt` value is the amount of quota that the server gave to the client, but don't know yet how much the client has already used. In case of a client failure, a new client will work with a new share from server, the share hold before the failure is still set aside in the “in doubt” value.
