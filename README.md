@@ -109,3 +109,32 @@ To force the synchronization, run the script `netapp_sync_clock.sh`, from the ma
 ## GPFS
 
 The script `check_gpfs_quota.py` checks for the `in_doubt` value of the output of the command to check quota, `mmrepquota`. The `in_doubt` value is the amount of quota that the server gave to the client, but don't know yet how much the client has already used. In case of a client failure, a new client will work with a new share from server, the share hold before the failure is still set aside in the “in doubt” value.
+
+The script checks if the amount of already used disk space plus the `in_doubt` are lower than the quota of the file system. The script also checks if the value of `in_doubt` is not too big. The threshold is defined in the `quota_check.conf` file, and it's expressed in _kilobytes_. The configuration file also has the values that should be used to control the usage of a file system. The usage is expressed as percentage quota of the file system.
+
+``` Python
+    # Calculate the usage, in percentage, of the fileset:
+    usage_fs = (in_use + in_doubt)/limit_fs
+    if usage_fs > usage_critical:
+```
+
+The content of the `quota_check.conf` file
+
+```
+    [root@nagiosds bin]# more quota_check.conf
+    # configuration parameters for the quota check on gpfs.
+    # Adjustable parameters are the values for critical and warning.
+    [DEFAULT]
+    # 1TB = 10^9 KB
+    in_doubt_max = 1000000000
+
+    [gpfs.bindata]
+    usage_critical=0.95
+    usage_warning=0.90
+
+    [gpfs.bindata_t]
+    usage_critical=0.95
+    usage_warning=0.90
+
+    [root@nagiosds bin]#
+```
