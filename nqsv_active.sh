@@ -11,8 +11,8 @@ for ii in "${nqsv_service_list[@]}"
 do
     is_active=`systemctl is-active $ii`
     if [[ "$is_active" != "active" ]]; then
-        cmk_status=2
-        cmk_msg="${cmk_status} ${cmk_check} - Critical: service ${ii} not active"
+        cmk_status=1
+        cmk_msg="${cmk_status} ${cmk_check} - Warning: service ${ii} not active"
         break
     fi
 done
